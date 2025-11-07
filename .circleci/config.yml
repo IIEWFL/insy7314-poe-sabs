@@ -81,17 +81,40 @@ jobs:
       - run:
           name: Run Tests with Coverage
           command: |
+            # Run frontend tests with coverage
             npm test || echo "Frontend tests completed"
+            # Run backend tests with coverage
             cd server && npm run test:coverage || echo "Backend tests completed (some may have failed)"
       - run:
           name: Prepare Coverage Reports
           command: |
             mkdir -p coverage
-            # Ensure coverage files exist
+            # Copy backend coverage if exists
             if [ -f server/coverage/lcov.info ]; then
-              cp server/coverage/lcov.info coverage/backend-lcov.info || true
+              cp server/coverage/lcov.info coverage/backend-lcov.info
+              echo "Backend coverage copied"
+            else
+              echo "Warning: Backend coverage not found"
             fi
-      - sonarcloud/scan
+            # Copy frontend coverage if exists (Vitest puts it in coverage/lcov.info)
+            if [ -f coverage/lcov.info ]; then
+              echo "Frontend coverage found at coverage/lcov.info"
+            else
+              echo "Warning: Frontend coverage not found, checking for alternative location"
+              # Vitest might put coverage in a different location
+              if [ -f coverage/coverage/lcov.info ]; then
+                cp coverage/coverage/lcov.info coverage/lcov.info
+                echo "Frontend coverage found and copied"
+              fi
+            fi
+            # List coverage directory contents for debugging
+            echo "Coverage directory contents:"
+            ls -la coverage/ || true
+      - sonarcloud/scan:
+          additional-params: >
+            -Dsonar.qualitygate.wait=false
+            -Dsonar.typescript.lcov.reportPaths=coverage/backend-lcov.info
+            -Dsonar.javascript.lcov.reportPaths=coverage/backend-lcov.info
 
   security-scan:
     docker:
