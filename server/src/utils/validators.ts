@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const PATTERNS = {
-  fullName: /^[a-zA-Z\s'-]{2,100}$/,
+  fullName: /^[\p{L}\s'-]{2,100}$/u, // Allows Unicode letters (including accented characters) for international names
   idNumber: /^[A-Z0-9]{6,20}$/,
   accountNumber: /^\d{8,20}$/,
   username: /^[a-zA-Z0-9_-]{3,30}$/,

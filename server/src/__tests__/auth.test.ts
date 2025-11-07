@@ -11,7 +11,9 @@ describe('Authentication Security Tests', () => {
   });
 
   afterAll(async () => {
-    await mongoose.connection.db.dropDatabase();
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+    }
     await mongoose.disconnect();
   });
 
@@ -280,7 +282,7 @@ describe('Authentication Security Tests', () => {
         .expect(200);
 
       const cookies = response.headers['set-cookie'];
-      const sessionCookie = cookies?.find((cookie: string) => cookie.includes('sid'));
+      const sessionCookie = Array.isArray(cookies) ? cookies.find((cookie: string) => cookie.includes('sid')) : undefined;
       
       expect(sessionCookie).toContain('HttpOnly');
       expect(sessionCookie).toContain('SameSite=Strict');

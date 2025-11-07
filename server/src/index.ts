@@ -41,6 +41,7 @@ app.use(enforceHttps);
 app.use(securityMiddleware);
 
 // Sessions (using memory store for testing without MongoDB)
+// Session security: httpOnly prevents XSS, sameSite prevents CSRF, secure flag for HTTPS
 app.use(
   session({
     name: "sid",
@@ -49,17 +50,17 @@ app.use(
     saveUninitialized: false,
     // store: sessionStore, // Disabled for testing
     cookie: {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: ENV.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60, // 1 hour
+      httpOnly: true, // Prevents XSS attacks by blocking JavaScript access to cookies
+      sameSite: "strict", // Prevents CSRF attacks by blocking cross-site requests
+      secure: true, // Secure flag always true since we always use HTTPS
+      maxAge: 1000 * 60 * 60, // 1 hour session timeout
     },
   })
 );
 
 // CSRF protection using double-submit cookie pattern
 const csrfProtection = csurf({
-  cookie: { httpOnly: true, sameSite: "strict", secure: ENV.NODE_ENV === "production" },
+  cookie: { httpOnly: true, sameSite: "strict", secure: true }, // Always secure since we use HTTPS
 });
 
 // Expose CSRF token endpoint for the SPA to fetch and use

@@ -13,10 +13,18 @@ beforeAll(async () => {
 
 // Clean up after all tests
 afterAll(async () => {
-  if (mongoose.connection.db) {
-    await mongoose.connection.db.dropDatabase();
+  try {
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+    }
+  } catch (error) {
+    console.warn('Failed to drop test database:', error);
   }
-  await mongoose.disconnect();
+  try {
+    await mongoose.disconnect();
+  } catch (error) {
+    console.warn('Failed to disconnect from MongoDB:', error);
+  }
 });
 
 // Clean up after each test

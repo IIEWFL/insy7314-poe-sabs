@@ -8,13 +8,18 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
     coverage: {
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         'src/__tests__/',
         '**/*.d.ts',
         '**/*.config.*',
+        '**/dist/',
+        '**/build/',
+        '**/coverage/',
       ],
+      include: ['src/**/*.{ts,tsx}'],
+      outputDir: 'coverage',
     },
   },
 })
