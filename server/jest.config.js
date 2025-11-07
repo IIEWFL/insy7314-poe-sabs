@@ -3,8 +3,15 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: [
-    '**/__tests__/**/*.+(ts|tsx|js)',
+    '**/__tests__/**/*.(test|spec).+(ts|tsx|js)',
     '**/*.(test|spec).+(ts|tsx|js)'
+  ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/build/',
+    '/coverage/',
+    'setup.ts' // Exclude setup files from being treated as tests
   ],
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
@@ -13,7 +20,8 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',
-    '!src/index.ts' // Exclude main entry point from coverage
+    '!src/index.ts', // Exclude main entry point from coverage
+    '!src/__tests__/**' // Exclude test files from coverage
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
