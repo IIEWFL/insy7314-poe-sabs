@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import { api } from "@/lib/api";
 const EmployeeLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshAuth } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -34,6 +36,8 @@ const EmployeeLogin = () => {
       });
 
       if (result.error) throw new Error(result.error);
+
+      await refreshAuth();
 
       toast({
         title: "Welcome back!",
