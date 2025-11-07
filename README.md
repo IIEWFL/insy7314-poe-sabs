@@ -39,10 +39,12 @@ cp env.example .env
 # 4. Generate SSL certificates (first time only)
 node generate-trusted-certs.js
 
-# 5. Start development servers
+# 5. Seed Employees to mongo
+npm run seed:employees
+
+# 6. Start development servers
 npm run dev:all
 ```
-
 
 ## **Security Architecture Deep Dive**
 
