@@ -110,11 +110,7 @@ jobs:
             # List coverage directory contents for debugging
             echo "Coverage directory contents:"
             ls -la coverage/ || true
-      - sonarcloud/scan:
-          additional-params: >
-            -Dsonar.qualitygate.wait=false
-            -Dsonar.typescript.lcov.reportPaths=coverage/backend-lcov.info
-            -Dsonar.javascript.lcov.reportPaths=coverage/backend-lcov.info
+      - sonarcloud/scan
 
   security-scan:
     docker:
