@@ -1,5 +1,39 @@
 export type ApiResult<T> = { data?: T; error?: string };
 
+export interface TransactionSummary {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type CustomerTransaction = TransactionSummary;
+
+export interface PendingTransaction {
+  _id: string;
+  amount: number;
+  currency: string;
+  payeeAccountInfo: string;
+  swiftCode: string;
+  status: string;
+  createdAt: string;
+  customerId?: {
+    username: string;
+    fullName: string;
+    accountNumber: string;
+  } | null;
+}
+
+export interface CreatedTransaction {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+}
+
 async function getCsrfToken(): Promise<string> {
   const res = await fetch("/api/csrf-token", {
     credentials: "include",
@@ -21,13 +55,27 @@ async function postJson<T>(path: string, body: unknown): Promise<ApiResult<T>> {
       },
       body: JSON.stringify(body),
     });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return { error: (json && (json.error as string)) || "Request failed" };
+    let json: unknown = null;
+    try {
+      json = await res.json();
+    } catch (parseError) {
+      if (res.ok) {
+        throw parseError;
+      }
     }
+
+    if (!res.ok) {
+      const errorMessage =
+        typeof json === "object" && json !== null && "error" in json && json.error
+          ? String((json as { error?: unknown }).error)
+          : "Request failed";
+      return { error: errorMessage };
+    }
+
     return { data: json as T };
-  } catch (e: any) {
-    return { error: e?.message || "Network error" };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Network error";
+    return { error: message };
   }
 }
 
@@ -51,11 +99,18 @@ export const api = {
   me: async () => {
     try {
       const res = await fetch("/api/auth/me", { credentials: "include" });
-      const json = await res.json();
-      if (!res.ok) return { error: json?.error || "Unauthorized" };
-      return { data: json } as ApiResult<{ user: { username: string } }>;
-    } catch (e: any) {
-      return { error: e?.message || "Network error" };
+      const json: unknown = await res.json();
+      if (!res.ok) {
+        const errorMessage =
+          typeof json === "object" && json !== null && "error" in json && json.error
+            ? String((json as { error?: unknown }).error)
+            : "Unauthorized";
+        return { error: errorMessage } as ApiResult<{ user: { username: string } }>;
+      }
+      return { data: json as { user: { username: string } } } as ApiResult<{ user: { username: string } }>;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Network error";
+      return { error: message } as ApiResult<{ user: { username: string } }>;
     }
   },
 
@@ -66,16 +121,23 @@ export const api = {
     provider: string;
     payeeAccountInfo: string;
     swiftCode: string;
-  }) => postJson<{ message: string; transaction: any }>("/api/transactions", input),
+  }) => postJson<{ message: string; transaction: CreatedTransaction }>("/api/transactions", input),
 
   getMyTransactions: async () => {
     try {
       const res = await fetch("/api/transactions/my", { credentials: "include" });
-      const json = await res.json();
-      if (!res.ok) return { error: json?.error || "Failed to fetch transactions" };
-      return { data: json } as ApiResult<{ transactions: any[] }>;
-    } catch (e: any) {
-      return { error: e?.message || "Network error" };
+      const json: unknown = await res.json();
+      if (!res.ok) {
+        const errorMessage =
+          typeof json === "object" && json !== null && "error" in json && json.error
+            ? String((json as { error?: unknown }).error)
+            : "Failed to fetch transactions";
+        return { error: errorMessage } as ApiResult<{ transactions: CustomerTransaction[] }>;
+      }
+      return { data: json as { transactions: CustomerTransaction[] } } as ApiResult<{ transactions: CustomerTransaction[] }>;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Network error";
+      return { error: message } as ApiResult<{ transactions: CustomerTransaction[] }>;
     }
   },
 
@@ -83,16 +145,26 @@ export const api = {
   getPendingTransactions: async () => {
     try {
       const res = await fetch("/api/transactions/pending", { credentials: "include" });
-      const json = await res.json();
-      if (!res.ok) return { error: json?.error || "Failed to fetch pending transactions" };
-      return { data: json } as ApiResult<{ transactions: any[] }>;
-    } catch (e: any) {
-      return { error: e?.message || "Network error" };
+      const json: unknown = await res.json();
+      if (!res.ok) {
+        const errorMessage =
+          typeof json === "object" && json !== null && "error" in json && json.error
+            ? String((json as { error?: unknown }).error)
+            : "Failed to fetch pending transactions";
+        return { error: errorMessage } as ApiResult<{ transactions: PendingTransaction[] }>;
+      }
+      return { data: json as { transactions: PendingTransaction[] } } as ApiResult<{ transactions: PendingTransaction[] }>;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Network error";
+      return { error: message } as ApiResult<{ transactions: PendingTransaction[] }>;
     }
   },
 
   verifyTransaction: (input: { transactionId: string }) =>
     postJson<{ message: string }>("/api/transactions/verify", input),
+
+  declineTransaction: (input: { transactionId: string; reason: string }) =>
+    postJson<{ message: string }>("/api/transactions/decline", input),
 
   submitToSwift: (input: { transactionIds: string[] }) =>
     postJson<{ message: string; submittedCount: number }>("/api/transactions/submit-to-swift", input),

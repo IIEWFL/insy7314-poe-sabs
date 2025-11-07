@@ -31,11 +31,21 @@ export const verifyTransactionSchema = z.object({
   transactionId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid transaction ID"),
 });
 
+export const declineTransactionSchema = z.object({
+  transactionId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid transaction ID"),
+  reason: z
+    .string()
+    .trim()
+    .min(10, "Decline reason must be at least 10 characters")
+    .max(500, "Decline reason must be at most 500 characters"),
+});
+
 export const submitToSwiftSchema = z.object({
   transactionIds: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid transaction ID")).min(1),
 });
 
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type VerifyTransactionInput = z.infer<typeof verifyTransactionSchema>;
+export type DeclineTransactionInput = z.infer<typeof declineTransactionSchema>;
 export type SubmitToSwiftInput = z.infer<typeof submitToSwiftSchema>;
 

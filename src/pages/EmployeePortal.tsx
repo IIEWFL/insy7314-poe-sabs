@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ShieldCheck, LogOut, CheckCircle2, Send } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ShieldCheck, LogOut, CheckCircle2, Send, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
 
@@ -31,17 +42,20 @@ const EmployeePortal = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [declineDialogOpen, setDeclineDialogOpen] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [transactionToDecline, setTransactionToDecline] = useState<Transaction | null>(null);
 
-  useEffect(() => {
-    fetchPendingTransactions();
-  }, []);
-
-  const fetchPendingTransactions = async () => {
+  const fetchPendingTransactions = useCallback(async () => {
     try {
+      setIsLoading(true);
       const result = await api.getPendingTransactions();
       if (result.data) {
-        setTransactions(result.data.transactions);
+        const fetched = (result.data.transactions || []) as Transaction[];
+        setTransactions(fetched);
+        setSelectedTransactions((prev) => prev.filter((id) => fetched.some((tx: Transaction) => tx._id === id)));
       } else if (result.error) {
+        console.error("Error fetching transactions:", result.error);
         toast({
           variant: "destructive",
           title: "Error loading transactions",
@@ -50,8 +64,19 @@ const EmployeePortal = () => {
       }
     } catch (error) {
       console.error("Error fetching transactions:", error);
+      toast({
+        variant: "destructive",
+        title: "Error loading transactions",
+        description: "Failed to fetch transactions. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchPendingTransactions();
+  }, [fetchPendingTransactions]);
 
   const verifyTransaction = async (transactionId: string) => {
     setIsLoading(true);
@@ -64,12 +89,13 @@ const EmployeePortal = () => {
         description: "The transaction has been marked as verified.",
       });
 
-      fetchPendingTransactions();
-    } catch (error: any) {
+      await fetchPendingTransactions();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unexpected error occurred";
       toast({
         variant: "destructive",
         title: "Verification failed",
-        description: error.message,
+        description: message,
       });
     } finally {
       setIsLoading(false);
@@ -97,12 +123,13 @@ const EmployeePortal = () => {
       });
 
       setSelectedTransactions([]);
-      fetchPendingTransactions();
-    } catch (error: any) {
+      await fetchPendingTransactions();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unexpected error occurred";
       toast({
         variant: "destructive",
         title: "Submission failed",
-        description: error.message,
+        description: message,
       });
     } finally {
       setIsLoading(false);
@@ -114,6 +141,52 @@ const EmployeePortal = () => {
       setSelectedTransactions([...selectedTransactions, transactionId]);
     } else {
       setSelectedTransactions(selectedTransactions.filter(id => id !== transactionId));
+    }
+  };
+
+  const openDeclineDialog = (transaction: Transaction) => {
+    setTransactionToDecline(transaction);
+    setDeclineReason("");
+    setDeclineDialogOpen(true);
+  };
+
+  const handleDeclineTransaction = async () => {
+    if (!transactionToDecline) return;
+    if (declineReason.trim().length < 10) {
+      toast({
+        variant: "destructive",
+        title: "Decline reason too short",
+        description: "Please provide at least 10 characters explaining the decline.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await api.declineTransaction({
+        transactionId: transactionToDecline._id,
+        reason: declineReason.trim(),
+      });
+      if (result.error) throw new Error(result.error);
+
+      toast({
+        title: "Transaction declined",
+        description: "The transaction has been declined.",
+      });
+
+      setDeclineDialogOpen(false);
+      setTransactionToDecline(null);
+      setDeclineReason("");
+      await fetchPendingTransactions();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An unexpected error occurred";
+      toast({
+        variant: "destructive",
+        title: "Decline failed",
+        description: message,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -199,7 +272,13 @@ const EmployeePortal = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground">
+                      Loading transactions...
+                    </TableCell>
+                  </TableRow>
+                ) : transactions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center text-muted-foreground">
                       No transactions to process
@@ -209,13 +288,16 @@ const EmployeePortal = () => {
                   transactions.map((transaction) => (
                     <TableRow key={transaction._id}>
                       <TableCell>
-                        {transaction.status === "verified" && (
+                        {transaction.status === "verified" ? (
                           <Checkbox
                             checked={selectedTransactions.includes(transaction._id)}
                             onCheckedChange={(checked) => 
                               handleSelectTransaction(transaction._id, checked as boolean)
                             }
+                            disabled={isLoading}
                           />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell>{new Date(transaction.createdAt).toLocaleDateString()}</TableCell>
@@ -228,21 +310,32 @@ const EmployeePortal = () => {
                       <TableCell className="font-mono">{transaction.swiftCode}</TableCell>
                       <TableCell>{getStatusBadge(transaction.status)}</TableCell>
                       <TableCell>
-                        {transaction.status === "pending" && (
-                          <Button
-                            size="sm"
-                            onClick={() => verifyTransaction(transaction._id)}
-                            disabled={isLoading}
-                          >
-                            <CheckCircle2 className="mr-1 h-4 w-4" />
-                            Verify
-                          </Button>
-                        )}
-                        {transaction.status === "verified" && (
+                        {transaction.status === "pending" ? (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => verifyTransaction(transaction._id)}
+                              disabled={isLoading}
+                            >
+                              <CheckCircle2 className="mr-1 h-4 w-4" />
+                              Verify
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => openDeclineDialog(transaction)}
+                              disabled={isLoading}
+                            >
+                              <XCircle className="mr-1 h-4 w-4" />
+                              Decline
+                            </Button>
+                          </div>
+                        ) : transaction.status === "verified" ? (
                           <Badge variant="secondary">Ready for SWIFT</Badge>
-                        )}
-                        {transaction.status === "submitted" && (
+                        ) : transaction.status === "submitted" ? (
                           <Badge variant="secondary">Submitted to SWIFT</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -253,6 +346,42 @@ const EmployeePortal = () => {
           </CardContent>
         </Card>
       </main>
+
+      <AlertDialog open={declineDialogOpen} onOpenChange={setDeclineDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline transaction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Provide a reason for declining this transaction. The requester will be notified of the decision.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="decline-reason">
+              Decline reason
+            </label>
+            <Textarea
+              id="decline-reason"
+              placeholder="Explain why this transaction is being declined..."
+              value={declineReason}
+              onChange={(event) => setDeclineReason(event.target.value)}
+              disabled={isLoading}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">Minimum 10 characters.</p>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeclineTransaction}
+              disabled={isLoading || declineReason.trim().length < 10}
+            >
+              Decline Transaction
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

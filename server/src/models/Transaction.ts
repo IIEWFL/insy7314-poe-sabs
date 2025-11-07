@@ -10,6 +10,9 @@ export interface ITransaction extends Document {
   status: "pending" | "verified" | "submitted" | "completed" | "failed";
   verifiedBy?: mongoose.Types.ObjectId;
   verifiedAt?: Date;
+  declinedBy?: mongoose.Types.ObjectId;
+  declinedAt?: Date;
+  declineReason?: string;
   submittedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -31,6 +34,9 @@ const TransactionSchema = new Schema<ITransaction>(
     },
     verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
     verifiedAt: Date,
+    declinedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    declinedAt: Date,
+    declineReason: { type: String, maxlength: 500 },
     submittedAt: Date,
   },
   { timestamps: true }
