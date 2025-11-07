@@ -121,10 +121,8 @@ jobs:
 workflows:
   main:
     jobs:
-      - build-and-test:
-          # Continue even if tests fail - we still want coverage for SonarCloud
+      - build-and-test
       - sonarcloud-scan:
-          # Run regardless of build-and-test status (SonarCloud can analyze code even with failing tests)
           context: SonarCloud
           filters:
             branches:
