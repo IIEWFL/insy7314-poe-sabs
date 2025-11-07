@@ -81,7 +81,7 @@ jobs:
       - run:
           name: Run Tests with Coverage
           command: |
-            npm test -- --coverage || echo "Frontend tests completed"
+            npm test || echo "Frontend tests completed"
             cd server && npm run test:coverage || echo "Backend tests completed (some may have failed)"
       - run:
           name: Prepare Coverage Reports

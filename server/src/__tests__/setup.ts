@@ -35,17 +35,33 @@ beforeAll(async () => {
 // Clean up after all tests
 afterAll(async () => {
   try {
-    if (mongoose.connection.readyState === 1) {
-      if (mongoose.connection.db) {
-        await mongoose.connection.db.dropDatabase();
+    // Close all mongoose connections
+    if (mongoose.connection.readyState !== 0) {
+      // Drop database if connected
+      if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+        try {
+          await mongoose.connection.db.dropDatabase();
+        } catch (e) {
+          // Ignore drop errors
+        }
       }
+      
+      // Disconnect mongoose
       await mongoose.disconnect();
       console.log('✅ Disconnected from MongoDB');
     }
   } catch (error) {
     console.warn('⚠️ Failed to clean up MongoDB connection:', error instanceof Error ? error.message : error);
+    // Try to force disconnect
+    try {
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+      }
+    } catch (e) {
+      // Ignore disconnect errors
+    }
   }
-}, 10000);
+}, 15000);
 
 // Clean up after each test
 afterEach(async () => {

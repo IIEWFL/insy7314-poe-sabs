@@ -28,6 +28,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   testTimeout: 30000,
   maxWorkers: 1, // Run tests sequentially to avoid database conflicts
+  forceExit: true, // Force exit after tests complete (prevents hanging)
+  detectOpenHandles: true, // Help identify what's keeping the process alive
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
