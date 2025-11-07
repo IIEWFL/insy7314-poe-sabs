@@ -70,15 +70,31 @@ describe('Core Security Features', () => {
 
     it('should have HTTPS server creation capability', () => {
       const { SSLManager } = require('../utils/ssl');
+      const express = require('express');
       const sslManager = new SSLManager();
       
       expect(sslManager.createHttpsServer).toBeDefined();
       expect(typeof sslManager.createHttpsServer).toBe('function');
       
-      // Test that it requires proper parameters
-      expect(() => {
-        sslManager.createHttpsServer();
-      }).toThrow();
+      // Test that it requires proper parameters - should throw when files don't exist
+      // Suppress console.error during this test to avoid noise in test output
+      const originalError = console.error;
+      console.error = jest.fn();
+      
+      try {
+        const testApp = express();
+        // Provide invalid paths to trigger error
+        expect(() => {
+          sslManager.createHttpsServer(testApp, { 
+            keyPath: '/nonexistent/key.pem', 
+            certPath: '/nonexistent/cert.pem', 
+            dhparamPath: '' 
+          });
+        }).toThrow('HTTPS server creation failed');
+      } finally {
+        // Restore console.error
+        console.error = originalError;
+      }
     });
   });
 

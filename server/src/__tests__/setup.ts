@@ -1,4 +1,9 @@
 // Test setup file - DO NOT RENAME TO .test.ts or .spec.ts
+// Set NODE_ENV to test if not already set
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
+
 import mongoose from 'mongoose';
 
 // Increase timeout for database operations
