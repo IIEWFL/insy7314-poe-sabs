@@ -124,17 +124,62 @@ jobs:
             npm ci
             cd server && npm ci
       - run:
-          name: Security Audit
+          name: Frontend Dependency Security Audit
           command: |
+            echo "=========================================="
+            echo "🔍 FRONTEND DEPENDENCY SECURITY SCAN"
+            echo "=========================================="
+            npm audit --audit-level=moderate --json > frontend-audit.json 2>&1 || true
             npm audit --audit-level=moderate || true
-            cd server && npm audit --audit-level=moderate || true
+            echo ""
+            echo "✅ Frontend security audit completed"
       - run:
-          name: Lint Security Issues
+          name: Backend Dependency Security Audit
           command: |
-            npm run lint || true
-            cd server && npx tsc --noEmit || true
+            echo "=========================================="
+            echo "🔍 BACKEND DEPENDENCY SECURITY SCAN"
+            echo "=========================================="
+            cd server
+            npm audit --audit-level=moderate --json > ../backend-audit.json 2>&1 || true
+            npm audit --audit-level=moderate || true
+            echo ""
+            echo "✅ Backend security audit completed"
+      - run:
+          name: Static Code Analysis - Frontend
+          command: |
+            echo "=========================================="
+            echo "📋 FRONTEND CODE SECURITY LINTING"
+            echo "=========================================="
+            npm run lint || echo "⚠️ Some linting issues found (non-blocking)"
+            echo ""
+            echo "✅ Frontend linting completed"
+      - run:
+          name: Static Code Analysis - Backend
+          command: |
+            echo "=========================================="
+            echo "📋 BACKEND CODE SECURITY LINTING"
+            echo "=========================================="
+            cd server
+            npx tsc --noEmit || echo "⚠️ Some TypeScript issues found (non-blocking)"
+            echo ""
+            echo "✅ Backend type checking completed"
+      - run:
+          name: Security Summary Report
+          command: |
+            echo "=========================================="
+            echo "📊 SECURITY SCAN SUMMARY"
+            echo "=========================================="
+            echo "✅ Dependency vulnerability scanning: COMPLETE"
+            echo "✅ Static code analysis: COMPLETE"
+            echo "✅ Type checking: COMPLETE"
+            echo ""
+            echo "Security scan artifacts saved for review"
+            echo "=========================================="
       - store_artifacts:
-          path: npm-audit-results
+          path: frontend-audit.json
+          destination: security-reports
+      - store_artifacts:
+          path: backend-audit.json
           destination: security-reports
 
 workflows:
