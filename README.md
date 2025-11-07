@@ -1,7 +1,6 @@
 # 🔒 SecurBank International - Secure Banking Portal
 
 
-
 > **🏆 Academic Excellence Project - Demonstrating Enterprise-Grade Security Implementation**
 
 A comprehensive banking portal showcasing advanced security implementations. This project demonstrates real-world security practices including password security, input validation, SSL/TLS encryption, attack protection, and automated DevSecOps pipelines.
