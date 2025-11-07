@@ -1,7 +1,7 @@
 export type ApiResult<T> = { data?: T; error?: string };
 
 export interface TransactionSummary {
-  id: string;
+  _id: string;
   amount: number;
   currency: string;
   status: string;
@@ -9,7 +9,15 @@ export interface TransactionSummary {
   updatedAt?: string;
 }
 
-export type CustomerTransaction = TransactionSummary;
+export interface CustomerTransaction extends TransactionSummary {
+  payeeAccountInfo: string;
+  swiftCode: string;
+  provider?: string;
+  declineReason?: string;
+  declinedAt?: string;
+  verifiedAt?: string;
+  submittedAt?: string;
+}
 
 export interface PendingTransaction {
   _id: string;

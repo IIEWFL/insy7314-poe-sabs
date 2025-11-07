@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Shield, LogOut, Send, DollarSign } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, type CustomerTransaction } from "@/lib/api";
 import { z } from "zod";
 
 const paymentSchema = z.object({
@@ -24,21 +24,11 @@ const paymentSchema = z.object({
 
 type PaymentInput = z.infer<typeof paymentSchema>;
 
-interface Transaction {
-  _id: string;
-  amount: number;
-  currency: string;
-  payeeAccountInfo: string;
-  swiftCode: string;
-  status: string;
-  createdAt: string;
-}
-
 const CustomerDashboard = () => {
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
 
   const {
     register,
@@ -260,6 +250,7 @@ const CustomerDashboard = () => {
                   <TableHead>Currency</TableHead>
                   <TableHead>SWIFT Code</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -278,6 +269,11 @@ const CustomerDashboard = () => {
                       <TableCell>{transaction.currency}</TableCell>
                       <TableCell className="font-mono">{transaction.swiftCode}</TableCell>
                       <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                      <TableCell className="max-w-xs whitespace-pre-wrap text-sm text-muted-foreground">
+                        {transaction.status === "failed" && transaction.declineReason
+                          ? `Declined: ${transaction.declineReason}`
+                          : "—"}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

@@ -67,7 +67,9 @@ router.get("/my", transactionLimiter, async (req, res) => {
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
     const transactions = await Transaction.find({ customerId: uid })
-      .select("amount currency status createdAt updatedAt")
+      .select(
+        "amount currency provider payeeAccountInfo swiftCode status createdAt updatedAt declineReason declinedAt verifiedAt submittedAt"
+      )
       .sort({ createdAt: -1 })
       .lean();
 
